@@ -1,0 +1,38 @@
+http://hs.inven.co.kr/dataninfo/deck/new/
+
+confirm=1 : 인증글, prize=1 : 대회덱, gamemode=1 : 정규전, concept=1 : 전설등급
+
+class
+	10 : 전사
+	8 : 주술사
+	7 : 도적
+	3 : 사냥꾼
+	5 : 성기사
+	2 : 드루이드
+	9 : 흑마법사
+	4 : 마법사
+	6 : 사제
+
+
+
+1. 페이지의 게시물 리스트 획득
+	<table class="hsDbCartTable" 의 class subject
+	덱 리스트는 다음 php 파일로 요청
+		POST /dataninfo/deck/new/list.ajax.php HTTP/1.1
+		Host: hs.inven.co.kr
+		Connection: keep-alive
+		Content-Length: 0
+		Accept: text/html, */*; q=0.01
+		Origin: http://hs.inven.co.kr
+		X-Requested-With: XMLHttpRequest
+		User-Agent: Mozilla/5.0 (Windows NT 6.1; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/54.0.2840.87 Safari/537.36
+		Referer: http://hs.inven.co.kr/dataninfo/deck/new/
+		Accept-Encoding: gzip, deflate
+		Accept-Language: ko-KR,ko;q=0.8,en-US;q=0.6,en;q=0.4
+		Cookie: hotIssue6thAd=1; topskyCnt=2; _ga=GA1.3.271365597.1484824492; _ga=GA1.4.27449333.1484822967
+
+		url : http://hs.inven.co.kr/dataninfo/deck/new/list.ajax.php
+		필요한 헤더 : referer
+
+2. 추출한 링크에서 덱 리스트
+	덱복사 이걸 사용하면 한번에 가져올 수 있을 것 같은데 동작 원리를 아직 모르겠음

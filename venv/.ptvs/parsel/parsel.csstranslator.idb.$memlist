@@ -1,0 +1,12 @@
+GenericTranslator
+HTMLTranslator
+XPathExpr
+ExpressionError
+css2xpath
+OriginalHTMLTranslator
+_translator
+OriginalXPathExpr
+OriginalGenericTranslator
+TranslatorMixin
+FunctionalPseudoElement
+_unicode_safe_getattr

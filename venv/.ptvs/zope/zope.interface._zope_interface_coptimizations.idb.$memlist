@@ -1,0 +1,16 @@
+ClassProvidesBase
+InterfaceBase
+LookupBase
+ObjectSpecificationDescriptor
+SpecificationBase
+VerifyingBase
+__doc__
+__file__
+__loader__
+__name__
+__package__
+__spec__
+adapter_hooks
+getObjectSpecification
+implementedBy
+providedBy
