@@ -4,6 +4,8 @@ import urllib
 from scrapy.selector import Selector
 from enum import Enum
 import json
+import re
+import robobrowser
 
 class Character(Enum):
     ALL = 1
@@ -61,7 +63,38 @@ def get_deck_list(character, confirm=0, gamemode=1, page=1, concept=1):
 
     return deck_lists
 
-temp = get_deck_list(Character.KNIGHT.value)
+def get_deck_info(url):
+    p = re.compile('(\d+)')
+    m = p.search(url)
+    if not m:
+        return None
+
+    idx = m.group()
+
+    headers = {
+        'Referer': 'http://hs.inven.co.kr/dataninfo/deck/new/'
+    }
+    data = {
+        'idx': idx
+    }
+
+    r = requests.get(BASE_URL + 'view.php', headers = headers, params = data)
+    html = r.text
+
+    sel = Selector(text=html)
+    sel.css('.subject a::attr(href)').extract()
+
+    deck = []
+    category = sel.xpath("//div[@id='hsDbDeckCardList']//div[@class='deck-card-left']//div[@class='deck-card-wrap']//div[@class='deck-card-title']//text()").extract()
+    for i in category:
+        deck.append({})
+        deck[i]['category'] = sel.css('.deck-card-wrap deck-card-title::text').extract()
+
+    return html
+
+deck_lists = get_deck_list(Character.WIZARD.value)
+
+test = get_deck_info(deck_lists[1])
 
 #subject_links = subject_links_from_listpage("http://hs.inven.co.kr/dataninfo/deck/new/list.ajax.php")
 
@@ -69,6 +102,6 @@ temp = get_deck_list(Character.KNIGHT.value)
 #pprint(subject_links)
 
 
-with codecs.open("sample.html", "w", encoding='utf-8') as f:
-    f.write(temp)
+#with codecs.open("sample.html", "w", encoding='utf-8') as f:
+#    f.write(temp)
 
