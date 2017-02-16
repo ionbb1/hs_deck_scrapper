@@ -5,7 +5,28 @@ from scrapy.selector import Selector
 from enum import Enum
 import json
 import re
-import robobrowser
+from PyQt4.QtGui import *  
+from PyQt4.QtCore import *  
+from PyQt4.QtWebKit import *  
+import sys
+
+DOWNLOADER_MIDDLEWARES = {
+    'scrapy_splash.SplashCookiesMiddleware': 723,
+    'scrapy_splash.SplashMiddleware': 725,
+    'scrapy.downloadermiddlewares.httpcompression.HttpCompressionMiddleware': 810,
+}
+
+class Render(QWebPage):  
+  def __init__(self, url):  
+    self.app = QApplication(sys.argv)  
+    QWebPage.__init__(self)  
+    self.loadFinished.connect(self._loadFinished)  
+    self.mainFrame().load(QUrl(url))  
+    self.app.exec_()  
+  
+  def _loadFinished(self, result):  
+    self.frame = self.mainFrame()  
+    self.app.quit()
 
 class Character(Enum):
     ALL = 1
@@ -57,6 +78,7 @@ def get_deck_list(character, confirm=0, gamemode=1, page=1, concept=1):
     r = requests.post(BASE_URL + 'list.ajax.php', headers = headers, data = data)
     html =  r.text
 
+
     sel = Selector(text=html)
     deck_lists = sel.css('.subject a::attr(href)').extract()
     deck_lists = [urllib.parse.urljoin(BASE_URL, deck_list) for deck_list in deck_lists]
@@ -81,14 +103,20 @@ def get_deck_info(url):
     r = requests.get(BASE_URL + 'view.php', headers = headers, params = data)
     html = r.text
 
-    sel = Selector(text=html)
+    test = BASE_URL + 'list.ajax.php?idx=' + idx
+
+    render = Render('http://hs.inven.co.kr/dataninfo/deck/new/view.php?idx=39379')
+    result = render.frame.toHtml()
+    
+
+    sel = Selector(text=result)
     sel.css('.subject a::attr(href)').extract()
 
-    deck = []
-    category = sel.xpath("//div[@id='hsDbDeckCardList']//div[@class='deck-card-left']//div[@class='deck-card-wrap']//div[@class='deck-card-title']//text()").extract()
-    for i in category:
-        deck.append({})
-        deck[i]['category'] = sel.css('.deck-card-wrap deck-card-title::text').extract()
+    a = sel.xpath('//*[@id="hsDbDeckCardList"]/div[2]/div/div[1]/div[1]/ul').extract()
+    b = sel.xpath('//*[@id="hsDbDeckCardList"]/div[2]/div/div[1]/div[2]/ul').extract()
+    c = sel.xpath('//*[@id="hsDbDeckCardList"]/div[2]/div/div[2]/div/ul').extract()
+
+    
 
     return html
 
