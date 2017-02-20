@@ -36,3 +36,10 @@ class
 
 2. 추출한 링크에서 덱 리스트
 	덱복사 이걸 사용하면 한번에 가져올 수 있을 것 같은데 동작 원리를 아직 모르겠음
+
+
+rarityColors = [ '#585858', '#000', '#000', '#0070dd', '#a335ee', '#ff8000' ];
+
+'<span style="color:#0070c0">['+card.cost+'] </span><a href="http://hs.inven.co.kr/dataninfo/card/detail.php?code='+card.code+'" target="_blank" hs-card="'+card.code+'" style="color:'+rarityColors[card.rarity]+';">'+card.name+'</a> x'+card.count;
+result += '<b style="color:#ff0000">' + classText[hero] + ' 카드</b><br />' + data[1].join('<br />');
+result += '<b style="color:#ff0000">중립 카드</b><br />' + data[0].join('<br />');

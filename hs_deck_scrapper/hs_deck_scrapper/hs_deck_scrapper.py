@@ -110,13 +110,18 @@ def get_deck_info(url):
     
 
     sel = Selector(text=result)
-    sel.css('.subject a::attr(href)').extract()
-
-    a = sel.xpath('//*[@id="hsDbDeckCardList"]/div[2]/div/div[1]/div[1]/ul').extract()
-    b = sel.xpath('//*[@id="hsDbDeckCardList"]/div[2]/div/div[1]/div[2]/ul').extract()
-    c = sel.xpath('//*[@id="hsDbDeckCardList"]/div[2]/div/div[2]/div/ul').extract()
-
+    a = sel.xpath('//*[@class="deck-card-wrap"]').extract()
+    #a = sel.xpath('//*[@id="hsDbDeckCardList"]/div[2]/div/div[1]/div[1]/ul').extract()
+    #b = sel.xpath('//*[@id="hsDbDeckCardList"]/div[2]/div/div[1]/div[2]/ul').extract()
+    #c = sel.xpath('//*[@id="hsDbDeckCardList"]/div[2]/div/div[2]/div/ul').extract()
     
+    title = '<b style="color:#ff0000">%s 카드</b><br /> %s 장<br />'
+    row = '<span style="color:#0070c0">[%s] </span><a href="http://hs.inven.co.kr/dataninfo/card/detail.php?code=%s" target="_blank" hs-card="%s" style="color:%s;">%s</a> x%s'
+
+    page = ''
+
+    for category in a:
+
 
     return html
 
