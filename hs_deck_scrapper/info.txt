@@ -43,3 +43,5 @@ rarityColors = [ '#585858', '#000', '#000', '#0070dd', '#a335ee', '#ff8000' ];
 '<span style="color:#0070c0">['+card.cost+'] </span><a href="http://hs.inven.co.kr/dataninfo/card/detail.php?code='+card.code+'" target="_blank" hs-card="'+card.code+'" style="color:'+rarityColors[card.rarity]+';">'+card.name+'</a> x'+card.count;
 result += '<b style="color:#ff0000">' + classText[hero] + ' 카드</b><br />' + data[1].join('<br />');
 result += '<b style="color:#ff0000">중립 카드</b><br />' + data[0].join('<br />');
+
+date 정보는 deck list의 6번째 <td>에 있음, 오늘거는  : 으로 구분되고, 하루지나면 - 날짜로 표시.. 내가 2월 20일날 돌리면 2-19일꺼만 수집하면 될것같음, 덱 타이틀도 수집해야 함

@@ -9,12 +9,8 @@ from PyQt4.QtGui import *
 from PyQt4.QtCore import *  
 from PyQt4.QtWebKit import *  
 import sys
+import datetime
 
-DOWNLOADER_MIDDLEWARES = {
-    'scrapy_splash.SplashCookiesMiddleware': 723,
-    'scrapy_splash.SplashMiddleware': 725,
-    'scrapy.downloadermiddlewares.httpcompression.HttpCompressionMiddleware': 810,
-}
 
 class Render(QWebPage):  
   def __init__(self, url):  
@@ -42,29 +38,13 @@ class Character(Enum):
 
 BASE_URL = 'http://hs.inven.co.kr/dataninfo/deck/new/'
 
-def fetch_page(url, headers=None):
-    r = requests.get(url, headers=headers)
-    return r.text
-
-def subject_links_from_listpage(url):
-    headers = {
-        'Referer': 'http://hs.inven.co.kr/dataninfo/deck/new/'
-    }
-    html = fetch_page(url, headers)
-    sel = Selector(text=html)
-    subject_links = sel.css('.subject a::attr(href)').extract()
-    subject_links = [urllib.parse.urljoin(url, subject_link) for subject_link in subject_links]
-    return subject_links
-    '''
-    with codecs.open("sample.html", "w", encoding='utf-8') as f:
-        html = fetch_page("http://hs.inven.co.kr/dataninfo/deck/new/list.ajax.php?class=10,gamemode=1")
-        f.write(html)
-    '''
-
+# confirm 1: 인증글, gamemode 1: 정규전, concept 1: 전설등급
+# 덱 리스트는 하루전날 올라온 리스트를 리턴
 def get_deck_list(character, confirm=0, gamemode=1, page=1, concept=1):
     headers = {
-        'Referer': 'http://hs.inven.co.kr/dataninfo/deck/new/'
+        'Referer': BASE_URL
     }
+
     data = {
         'class': character,
         'concept': concept,
@@ -73,17 +53,39 @@ def get_deck_list(character, confirm=0, gamemode=1, page=1, concept=1):
         'confirm': confirm
     }
 
-    url_template = 'list.ajax.php?class={0}&gamemode={1}&concept={2}&page={3}'.format(character, gamemode, concept, page)
+    today = datetime.date.today()
 
-    r = requests.post(BASE_URL + 'list.ajax.php', headers = headers, data = data)
-    html =  r.text
+    yesterday_deck_list = []
+    is_over = False
+    month = 0
+    day = 0
 
+    while True:
+        url_template = 'list.ajax.php?class={0}&gamemode={1}&concept={2}&page={3}'.format(character, gamemode, concept, page)
+        r = requests.post(BASE_URL + 'list.ajax.php', headers = headers, data = data)
+        html =  r.text
+        sel = Selector(text=html)
+        deck_lists = sel.css('.subject a::attr(href)').extract()
 
-    sel = Selector(text=html)
-    deck_lists = sel.css('.subject a::attr(href)').extract()
-    deck_lists = [urllib.parse.urljoin(BASE_URL, deck_list) for deck_list in deck_lists]
+        for deck_list in deck_lists:
+            for row_html in sel.xpath('//tr').extract():
+                row_sel = Selector(text=row_html)
+                date = row_sel.xpath('//td[6]/text()').extract()[0]
+                if '-' in date:
+                    month, day = date.split('-')
+                    if today.month == int(month) and today.day - 1 == int(day):
+                        yesterday_deck_list.append(urllib.parse.urljoin(BASE_URL, row_sel.css('.subject a::attr(href)').extract()[0]))
+                    if today.month >= int(month) and today.day -1 > int(day):
+                        is_over = True
+                        break
+            if is_over:
+                break
+        if is_over:
+            break
 
-    return deck_lists
+        page += 1
+
+    return yesterday_deck_list
 
 def get_deck_info(url):
     p = re.compile('(\d+)')
@@ -93,48 +95,44 @@ def get_deck_info(url):
 
     idx = m.group()
 
-    headers = {
-        'Referer': 'http://hs.inven.co.kr/dataninfo/deck/new/'
-    }
-    data = {
-        'idx': idx
-    }
-
-    r = requests.get(BASE_URL + 'view.php', headers = headers, params = data)
-    html = r.text
-
-    test = BASE_URL + 'list.ajax.php?idx=' + idx
-
-    render = Render('http://hs.inven.co.kr/dataninfo/deck/new/view.php?idx=39379')
+    render = Render(BASE_URL + 'view.php?idx=' + idx)
     result = render.frame.toHtml()
     
 
     sel = Selector(text=result)
-    a = sel.xpath('//*[@class="deck-card-wrap"]').extract()
-    #a = sel.xpath('//*[@id="hsDbDeckCardList"]/div[2]/div/div[1]/div[1]/ul').extract()
-    #b = sel.xpath('//*[@id="hsDbDeckCardList"]/div[2]/div/div[1]/div[2]/ul').extract()
-    #c = sel.xpath('//*[@id="hsDbDeckCardList"]/div[2]/div/div[2]/div/ul').extract()
+    deck_info_html = sel.xpath('//*[@class="deck-card-wrap"]').extract()
     
-    title = '<b style="color:#ff0000">%s 카드</b><br /> %s 장<br />'
-    row = '<span style="color:#0070c0">[%s] </span><a href="http://hs.inven.co.kr/dataninfo/card/detail.php?code=%s" target="_blank" hs-card="%s" style="color:%s;">%s</a> x%s'
+    full_html=''
+    title_html = '<b style="color:#ff0000">{} 카드 {}</b></br>'
+    body_html=''
+    row_html = '<span style="color:#0070c0">[{0}] </span><a href="http://hs.inven.co.kr/dataninfo/card/detail.php?code={1}" target="_blank" hs-card="{1}" style="color:{2};">{3}</a> {4}</br>'
 
     page = ''
+    rarity_colors = [ '#585858', '#000', '#000', '#0070dd', '#a335ee', '#ff8000']
 
-    for category in a:
+    for info_html in deck_info_html:
+        deck_sel = Selector(text = info_html)
+        title = deck_sel.xpath('//*[@class="deck-card-title"]/text()').extract()[0]
+        card_cnt = deck_sel.xpath('//*[@class="deck-card-title"]/span/text()').extract()[0]
+        full_html += title_html.format(title, card_cnt)
+        for card_html in deck_sel.xpath('//*[@class="deck-card-table"]/a').extract():
+            card_sel = Selector(text = card_html)
+            rarity = card_sel.css('.td b::attr(class)').extract()[0][-1]
+            code = card_sel.css('a::attr(hs-card)').extract()[0]
+            card_name = card_sel.css('.td b::text').extract()[0]
+            cnt = card_sel.css('.count::text').extract()[0]
+            cost = card_sel.css('.is-button::text').extract()[0]
+            full_html += row_html.format(cost, code, rarity_colors[int(rarity)], card_name, cnt)
+        full_html += '</br>'
 
-
-    return html
+    return full_html
 
 deck_lists = get_deck_list(Character.WIZARD.value)
 
-test = get_deck_info(deck_lists[1])
-
-#subject_links = subject_links_from_listpage("http://hs.inven.co.kr/dataninfo/deck/new/list.ajax.php")
-
-#from pprint import pprint
-#pprint(subject_links)
-
+for deck_url in deck_lists:
+    test = get_deck_info(deck_url)
+    z = 1
 
 #with codecs.open("sample.html", "w", encoding='utf-8') as f:
-#    f.write(temp)
+#    f.write(test)
 
