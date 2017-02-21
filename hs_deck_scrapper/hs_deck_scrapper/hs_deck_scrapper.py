@@ -10,6 +10,7 @@ from PyQt4.QtCore import *
 from PyQt4.QtWebKit import *  
 import sys
 import datetime
+import pymongo
 
 
 class Render(QWebPage):  
@@ -55,7 +56,7 @@ def get_deck_list(character, confirm=0, gamemode=1, page=1, concept=1):
 
     today = datetime.date.today()
 
-    yesterday_deck_list = []
+    yesterday_deck_list = {}
     is_over = False
     month = 0
     day = 0
@@ -67,19 +68,17 @@ def get_deck_list(character, confirm=0, gamemode=1, page=1, concept=1):
         sel = Selector(text=html)
         deck_lists = sel.css('.subject a::attr(href)').extract()
 
-        for deck_list in deck_lists:
-            for row_html in sel.xpath('//tr').extract():
-                row_sel = Selector(text=row_html)
-                date = row_sel.xpath('//td[6]/text()').extract()[0]
-                if '-' in date:
-                    month, day = date.split('-')
-                    if today.month == int(month) and today.day - 1 == int(day):
-                        yesterday_deck_list.append(urllib.parse.urljoin(BASE_URL, row_sel.css('.subject a::attr(href)').extract()[0]))
-                    if today.month >= int(month) and today.day -1 > int(day):
-                        is_over = True
-                        break
-            if is_over:
-                break
+        for row_html in sel.xpath('//tr').extract():
+            row_sel = Selector(text=row_html)
+            title = row_sel.xpath('//td[3]/a/text()').extract()[0]
+            date = row_sel.xpath('//td[6]/text()').extract()[0]
+            if '-' in date:
+                month, day = date.split('-')
+                if today.month == int(month) and today.day - 1 == int(day):
+                    yesterday_deck_list[title] = urllib.parse.urljoin(BASE_URL, row_sel.css('.subject a::attr(href)').extract()[0])
+                if today.month >= int(month) and today.day -1 > int(day):
+                    is_over = True
+                    break
         if is_over:
             break
 
@@ -87,7 +86,7 @@ def get_deck_list(character, confirm=0, gamemode=1, page=1, concept=1):
 
     return yesterday_deck_list
 
-def get_deck_info(url):
+def get_deck_info(deck_title, url):
     p = re.compile('(\d+)')
     m = p.search(url)
     if not m:
@@ -102,7 +101,7 @@ def get_deck_info(url):
     sel = Selector(text=result)
     deck_info_html = sel.xpath('//*[@class="deck-card-wrap"]').extract()
     
-    full_html=''
+    full_html='{0}</br>'.format(deck_title)
     title_html = '<b style="color:#ff0000">{} 카드 {}</b></br>'
     body_html=''
     row_html = '<span style="color:#0070c0">[{0}] </span><a href="http://hs.inven.co.kr/dataninfo/card/detail.php?code={1}" target="_blank" hs-card="{1}" style="color:{2};">{3}</a> {4}</br>'
@@ -129,9 +128,13 @@ def get_deck_info(url):
 
 deck_lists = get_deck_list(Character.WIZARD.value)
 
-for deck_url in deck_lists:
-    test = get_deck_info(deck_url)
-    z = 1
+#ds153719.mlab.com:53719/hs_deck, Home : { db : "hs_deck" }
+def save_to_db(deck_title, deck_info):
+
+
+for deck_title, url in deck_lists.items():
+    deck_info = get_deck_info(deck_title, url)
+    save_to_db(deck_title, deck_info)
 
 #with codecs.open("sample.html", "w", encoding='utf-8') as f:
 #    f.write(test)
