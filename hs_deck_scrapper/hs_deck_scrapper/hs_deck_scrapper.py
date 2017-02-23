@@ -20,10 +20,11 @@ class Render(QWebPage):
     self.loadFinished.connect(self._loadFinished)  
     self.mainFrame().load(QUrl(url))  
     self.app.exec_()  
-  
+
   def _loadFinished(self, result):  
     self.frame = self.mainFrame()  
     self.app.quit()
+
 
 class Character(Enum):
     ALL = 1
@@ -37,7 +38,9 @@ class Character(Enum):
     WARLOCK = 9
     KNIGHT = 10
 
+
 BASE_URL = 'http://hs.inven.co.kr/dataninfo/deck/new/'
+
 
 # confirm 1: 인증글, gamemode 1: 정규전, concept 1: 전설등급
 # 덱 리스트는 하루전날 올라온 리스트를 리턴
@@ -61,7 +64,7 @@ def get_deck_list(character, confirm=0, gamemode=1, page=1, concept=1):
     month = 0
     day = 0
 
-    while True:
+    while not is_over:
         url_template = 'list.ajax.php?class={0}&gamemode={1}&concept={2}&page={3}'.format(character, gamemode, concept, page)
         r = requests.post(BASE_URL + 'list.ajax.php', headers = headers, data = data)
         html =  r.text
@@ -74,17 +77,20 @@ def get_deck_list(character, confirm=0, gamemode=1, page=1, concept=1):
             date = row_sel.xpath('//td[6]/text()').extract()[0]
             if '-' in date:
                 month, day = date.split('-')
-                if today.month == int(month) and today.day - 1 == int(day):
-                    yesterday_deck_list[title] = urllib.parse.urljoin(BASE_URL, row_sel.css('.subject a::attr(href)').extract()[0])
+                month = int(month)
+                day = int(day)
+                if today.month == month and today.day - 1 == day:
+                    yesterday_deck_list[title] = {}
+                    yesterday_deck_list[title]['url'] = urllib.parse.urljoin(BASE_URL, row_sel.css('.subject a::attr(href)').extract()[0])
+                    yesterday_deck_list[title]['date'] = str(month) + '-' + str(day)
                 if today.month >= int(month) and today.day -1 > int(day):
                     is_over = True
                     break
-        if is_over:
-            break
 
         page += 1
 
     return yesterday_deck_list
+
 
 def get_deck_info(deck_title, url):
     p = re.compile('(\d+)')
@@ -126,15 +132,26 @@ def get_deck_info(deck_title, url):
 
     return full_html
 
-deck_lists = get_deck_list(Character.WIZARD.value)
 
 #ds153719.mlab.com:53719/hs_deck, Home : { db : "hs_deck" }
-def save_to_db(deck_title, deck_info):
+def save_to_db(deck_title, date, deck_info):
+    client = pymongo.MongoClient('mongodb://hs_deck:12345678@ds153719.mlab.com:53719/hs_deck')
+    db = client.hs_deck
+    hs_deck = db.hs_deck
+    data = {
+        'deck_title': deck_title,
+        'date': date,
+        'deck_info': deck_info
+    }
+    #hs_deck.insert(data)
+    for item in hs_deck.find({'date': '2-22'}):
+        print(item)
 
 
-for deck_title, url in deck_lists.items():
-    deck_info = get_deck_info(deck_title, url)
-    save_to_db(deck_title, deck_info)
+deck_lists = get_deck_list(Character.SHAMAN.value)
+for deck_title, info in deck_lists.items():
+    deck_info_html = get_deck_info(deck_title, info['url'])
+    save_to_db(deck_title, info['date'], deck_info_html)
 
 #with codecs.open("sample.html", "w", encoding='utf-8') as f:
 #    f.write(test)
